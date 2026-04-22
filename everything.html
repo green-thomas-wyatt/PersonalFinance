@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apartment to Mansion Journey - Board Game</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #27ae60;
+            --accent: #e67e22;
+            --bg: #ecf0f1;
+            --tile-size: 80px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #game-wrapper {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* --- BOARD STYLES --- */
+        #board-container {
+            position: relative;
+            background: #d4a373; /* Parchment/Map color */
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 8px solid #8b4513;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(5, var(--tile-size));
+            grid-template-rows: repeat(4, var(--tile-size));
+            gap: 10px;
+        }
+
+        .tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 4px solid #bdc3c7;
+            position: relative;
+        }
+
+        .tile.special { background: #ffeaa7; border-color: #fdcb6e; }
+        .tile.finish { background: var(--secondary); color: white; border-color: #1e8449; }
+
+        #player {
+            width: 40px;
+            height: 40px;
+            background: #e74c3c;
+            border: 3px solid white;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* --- SIDEBAR STYLES --- */
+        #sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 5px solid var(--primary);
+        }
+
+        #event-display {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 120px;
+            margin-top: 20px;
+        }
+
+        /* --- DICE STYLES --- */
+        #dice-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #dice {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        #dice:active { transform: scale(0.9); }
+        .roll-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .choice-btns { display: flex; gap: 5px; margin-top: 10px; }
+        .choice-btns button { font-size: 0.7rem; padding: 5px; }
+
+    </style>
+</head>
+<body>
+
+<h1>Apartment to Mansion Journey</h1>
+
+<div id="game-wrapper">
+    <div id="board-container">
+        <div id="player">ME</div>
+        <div id="board">
+            </div>
+    </div>
+
+    <div id="sidebar">
+        <h3>Game Status</h3>
+        <div class="stat-card">Savings: $<span id="money">5000</span></div>
+        <div class="stat-card">Roth IRA: $<span id="roth">0</span></div>
+        <div class="stat-card">Current Age: <span id="ageDisplay">20</span></div>
+
+        <div id="dice-area">
+            <div id="dice">?</div>
+            <button class="roll-btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+        </div>
+
+        <div id="event-display">
+            <p id="event-text">Welcome! Roll the dice to start your journey from Age 20 to Retirement.</p>
+            <div id="choices" class="choice-btns"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Course Logic Constants
+    const START_SAVINGS = 5000;
+    const APT_FEES = 1800; //
+    const LUXURY_ITEM = 1200; //
+    const ROTH_CONTRIBUTION = 1500; //
+
+    let player = {
+        pos: 0,
+        money: START_SAVINGS,
+        roth: 0,
+        age: 20,
+        hasApt: false
+    };
+
+    const boardPath = [
+        { id: 0, label: "Start", x: 0, y: 0 },
+        { id: 1, label: "Job", x: 1, y: 0 },
+        { id: 2, label: "Save", x: 2, y: 0 },
+        { id: 3, label: "Apt Hunt", x: 3, y: 0, type: 'special' },
+        { id: 4, label: "Bills", x: 4, y: 0 },
+        { id: 5, label: "Work", x: 4, y: 1 },
+        { id: 6, label: "Bonus", x: 3, y: 1 },
+        { id: 7, label: "Spend", x: 2, y: 1 },
+        { id: 8, label: "Sale!", x: 1, y: 1, type: 'special' },
+        { id: 9, label: "Growth", x: 0, y: 1 },
+        { id: 10, label: "Tax Time", x: 0, y: 2, type: 'special' },
+        { id: 11, label: "Saving", x: 1, y: 2 },
+        { id: 12, label: "Career", x: 2, y: 2 },
+        { id: 13, label: "Ethics", x: 3, y: 2 },
+        { id: 14, label: "Raise", x: 4, y: 2 },
+        { id: 15, label: "IRA Sq.", x: 4, y: 3, type: 'special' },
+        { id: 16, label: "Future", x: 3, y: 3 },
+        { id: 17, label: "Health", x: 2, y: 3 },
+        { id: 18, label: "Invest", x: 1, y: 3 },
+        { id: 19, label: "Retire!", x: 0, y: 3, type: 'finish' }
+    ];
+
+    function initBoard() {
+        const boardEl = document.getElementById('board');
+        // Populate board with tiles at fixed positions
+        boardPath.forEach(tile => {
+            const el = document.createElement('div');
+            el.className = `tile ${tile.type || ''}`;
+            el.id = `tile-${tile.id}`;
+            el.style.gridColumnStart = tile.x + 1;
+            el.style.gridRowStart = tile.y + 1;
+            el.innerHTML = `<span>${tile.label}</span><br><small>${tile.id + 20}</small>`;
+            boardEl.appendChild(el);
+        });
+        movePlayer();
+    }
+
+    function movePlayer() {
+        const target = boardPath[player.pos];
+        const playerEl = document.getElementById('player');
+        const tileGap = 10;
+        const padding = 20;
+        
+        playerEl.style.left = `${target.x * (80 + tileGap) + padding + 20}px`;
+        playerEl.style.top = `${target.y * (80 + tileGap) + padding + 20}px`;
+        
+        document.getElementById('money').innerText = player.money.toLocaleString();
+        document.getElementById('roth').innerText = player.roth.toLocaleString();
+        document.getElementById('ageDisplay').innerText = player.age;
+    }
+
+    async function rollDice() {
+        const diceBtn = document.getElementById('rollBtn');
+        diceBtn.disabled = true;
+        
+        // Dice Animation
+        const diceEl = document.getElementById('dice');
+        let roll = 0;
+        for(let i=0; i<10; i++){
+            roll = Math.floor(Math.random() * 3) + 1;
+            diceEl.innerText = roll;
+            await new Promise(r => setTimeout(r, 50));
+        }
+
+        player.pos += roll;
+        player.age += roll;
+        if (player.pos >= boardPath.length - 1) player.pos = boardPath.length - 1;
+        
+        movePlayer();
+        handleSquare(player.pos);
+    }
+
+    function handleSquare(pos) {
+        const text = document.getElementById('event-text');
+        const choices = document.getElementById('choices');
+        choices.innerHTML = "";
+
+        // TILE LOGIC [Citations below]
+        if (pos === 3 && !player.hasApt) {
+            text.innerHTML = `<strong>Apt Hunt:</strong> You need a place to live! You must pay move-in fees and a security deposit.`;
+            addButton("Pay $1,800", () => {
+                player.money -= APT_FEES;
+                player.hasApt = true;
+                nextTurn();
+            });
+        } 
+        else if (pos === 8) {
+            text.innerHTML = `<strong>Flash Sale:</strong> A "scarcity" marketing tactic! A luxury watch is $1,200. Will you apply the 24-hour rule?`;
+            addButton("Use 24-hr Rule (Save $)", nextTurn);
+            addButton("Buy Impulse (-$1,200)", () => {
+                player.money -= LUXURY_ITEM;
+                nextTurn();
+            });
+        }
+        else if (pos === 10) {
+            const tax = Math.floor(player.money * 0.15);
+            text.innerHTML = `<strong>Tax Audit:</strong> Taxes are progressive. Based on your current savings, you owe $${tax}.`;
+            addButton("Pay Taxes", () => {
+                player.money -= tax;
+                nextTurn();
+            });
+        }
+        else if (pos === 15) {
+            text.innerHTML = `<strong>IRA Sq:</strong> Social Security won't be enough. Invest in a Roth IRA for tax-free growth?`;
+            addButton("Invest $1,500", () => {
+                player.money -= ROTH_CONTRIBUTION;
+                player.roth += ROTH_CONTRIBUTION;
+                nextTurn();
+            });
+            addButton("Skip Contribution", nextTurn);
+        }
+        else if (pos === 19) {
+            text.innerHTML = `<strong>RETIRED!</strong> You finished the journey with $${player.money + player.roth}. Refresh to play again.`;
+        }
+        else {
+            text.innerText = "Nothing major happens this year. Keep saving!";
+            document.getElementById('rollBtn').disabled = false;
+        }
+    }
+
+    function addButton(label, action) {
+        const btn = document.createElement('button');
+        btn.innerText = label;
+        btn.onclick = action;
+        document.getElementById('choices').appendChild(btn);
+    }
+
+    function nextTurn() {
+        document.getElementById('choices').innerHTML = "";
+        document.getElementById('event-text').innerText = "Good move. Roll again!";
+        document.getElementById('rollBtn').disabled = false;
+        movePlayer();
+    }
+
+    window.onload = initBoard;
+</script>
+
+</body>
+</html>
