@@ -19,28 +19,35 @@
     </div>
 
     <div id="sidebar">
-        <h3>Live Finances</h3>
-        <div class="stat-card" id="job-stat">Job: <span id="jobDisplay">Unemployed</span></div>
-        
-        <div class="stat-card">Savings: $<span id="money">5000</span></div>
-        <div class="stat-card">Shares Owned: <span id="shares">0</span></div>
-        <div class="stat-card">Roth IRA: $<span id="roth">0</span></div>
-        <div class="stat-card debt-card">Payday Loan: $<span id="debt">0</span></div>
-        
-        <div class="stat-card">Insurance: <span id="insStatus">None</span></div>
-        <div class="stat-card">Current Age: <span id="ageDisplay">20</span></div>
-
-        <div id="dice-area">
-            <div id="dice">?</div>
-            <button class="roll-btn" id="rollBtn" disabled>Advance One Year</button>
+        <h3>📊 Live Finances</h3>
+        <div class="stat-card" id="job-stat">💼 Job: <span id="jobDisplay">Unemployed</span></div>
+        <div class="stat-card" style="border-left-color: #e67e22;">
+            🧠 Stress: <span id="stressDisplay">0%</span>
+            <div id="stress-bar-container">
+                <div id="stress-bar"></div>
+            </div>
         </div>
-
+        <div class="stat-card">💰 Savings: $<span id="money">5000</span></div>
+        <div class="stat-card">📈 Shares: <span id="shares">0</span></div>
+        <div class="stat-card">🏦 Roth IRA: $<span id="roth">0</span></div>
+        <div class="stat-card debt-card">🚨 Debt: $<span id="debt">0</span></div>
+        
+        <div class="stat-card" style="border-left-color: #9b59b6;">💳 Credit Score: <span id="creditScore">700</span></div>
+        <div class="stat-card">🛡️ Insurance: <span id="insStatus">None</span></div>
+        <div class="stat-card">🎂 Age: <span id="ageDisplay">20</span></div>
+        <div class="stat-card" style="background:#e1f5fe; border-left-color:#03a9f4;">🎯 Goal: <span id="goalDisplay">None</span></div>
+    
+        <div id="dice-area">
+            <div id="dice">🎲</div>
+            <button class="roll-btn" id="rollBtn" disabled>Advance One Year</button>
+            <button class="roll-btn" id="marketBtn" style="background: #2980b9; margin-top: 8px;">📈 Open Stock Market</button>
+        </div>
+    
         <div id="event-display">
-            <p id="event-text">Choose a career to begin your journey.</p>
+            <p id="event-text">Choose your retirement goal and career to begin!</p>
             <div id="choices" class="choice-btns"></div>
         </div>
     </div>
-</div>
 
 
 <script src="events.js"></script>

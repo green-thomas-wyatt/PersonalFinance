@@ -1,74 +1,147 @@
-// events.js - NO EXPORTS
 const randomEvents = [
-    {
-        title: "The Predatory 'Quick Cash' Trap",
-        desc: "An unexpected bill arrived. A lender offers $500 'hassle-free', but the fine print mentions a 400% APR.",
-        choices: [
-            { label: "Take the $500 (Debt grows faster!)", action: (p, hp) => { 
-                p.debt += 500; p.money += 500; p.currentInterest += 0.05; 
-            }},
-            { label: "Default on bill (-$700 & Credit Hit)", action: (p, hp) => { 
-                hp(700); p.creditScore -= 50; 
-            }}
-        ]
+    // --- NEGATIVE EVENTS ---
+    { title: "Medical Emergency 🚑", text: "You need an unexpected surgery.", cost: 8000, stressHit: 20, insuranceMitigates: true },
+    { title: "Crypto Scam 📉", text: "A friend convinced you to buy 'SquidCoin'. It tanked.", cost: 2500, stressHit: 15 },
+    { title: "Roof Leak 🌧️", text: "Your roof started leaking. Repairs are required.", cost: 4500, stressHit: 15, houseOnly: true },
+    { title: "Wedding Year 💍", text: "You attended 4 weddings this year. Flights and gifts add up.", cost: 3000, stressHit: 5 },
+    { title: "Car Transmission Blew 🚗", text: "Your car gave out. Mechanics aren't cheap.", cost: 3500, stressHit: 20, carOnly: true },
+    { title: "Identity Theft 🕵️", text: "Someone stole your credit card info. It's a mess.", cost: 1000, stressHit: 40, creditHit: 40 },
+    { title: "Dental Work 🦷", text: "You need a root canal. Ouch.", cost: 1800, stressHit: 10, insuranceMitigates: true },
+    { title: "Pet Illness 🐶", text: "Your dog ate something weird. Vet bill time.", cost: 1200, stressHit: 25 },
+    { title: "Company Layoffs 📉", text: "Your company downsized. You were out of work for 3 months.", cost: 5000, stressHit: 30 },
+    { title: "Sued for Minor Accident ⚖️", text: "You bumped someone's fence and they sued.", cost: 4000, stressHit: 35 },
+    { title: "Speeding Ticket 🚓", text: "Caught going 85 in a 60 zone.", cost: 400, stressHit: 10 },
+    { title: "Broken Phone 📱", text: "Dropped your phone in the toilet. Need a new one.", cost: 1000, stressHit: 15 },
+
+    // --- POSITIVE EVENTS ---
+    { title: "Inheritance 💰", text: "A distant relative left you some cash!", gain: 15000, stressRelief: 20 },
+    { title: "Market Dividend 📈", text: "Your investments paid out a nice dividend.", gain: 2000, stressRelief: 5, requiresShares: true },
+    { title: "Bonus at Work! 🎉", text: "Your boss recognized your hard work with a year-end bonus.", gain: 6000, stressRelief: 15 },
+    { title: "Won Small Lottery 🎟️", text: "Scratched off a winner at the gas station!", gain: 500, stressRelief: 5 },
+    { title: "Great Thrift Deal 🛋️", text: "Found a designer couch for $20 and flipped it.", gain: 300, stressRelief: 5 },
+    
+    // --- CHOICE EVENTS (Manage your stress vs money) ---
+    { 
+        title: "Spontaneous Vacation ✈️", text: "Your friends are going to Hawaii. It's expensive, but you really need a break.", 
+        isChoice: true, cost: 3500, stressRelief: 40, declineStressHit: 10 
     },
-    {
-        title: "Uninsured Medical Emergency",
-        desc: "You broke your arm. If you don't have insurance, this is going to hurt.",
-        choices: [
-            { label: "Pay full price", action: (p, hp) => { 
-                const cost = p.hasInsurance ? 500 : 2500; hp(cost);
-            }},
-            { label: "Skip (Lost Productivity)", action: (p, hp) => { 
-                p.isInjured = true; p.turnsUntilHealed = 6; 
-            }}
-        ]
+    { 
+        title: "Gym Membership 💪", text: "A premium gym opened up. Investing in health?", 
+        isChoice: true, cost: 1200, stressRelief: 20, declineStressHit: 0 
     },
-    {
-        title: "Infrastructure Failure",
-        desc: "Your refrigerator and water heater both died in the same week.",
-        choices: [
-            { label: "Replace both (-$1,800)", action: (p, hp) => { hp(1800); }},
-            { label: "Live without (Stressed)", action: (p, hp) => { 
-                hp(200); p.isStressed = true; 
-            }}
-        ]
+    { 
+        title: "Expensive Dinner 🥩", text: "Coworkers invite you to a Michelin star restaurant.", 
+        isChoice: true, cost: 400, stressRelief: 10, declineStressHit: 5 
+    }
+    // --- INSIDE JOKE EVENTS ---
+    ,
+    { 
+        title: "Izzy Ortiz's Underground Glizzy Cartel 🌭", 
+        text: "You got caught buying unregulated, black-market hot dogs from Izzy Ortiz. The city fined you, and honestly, your stomach isn't doing great either.", 
+        cost: 600, 
+        stressHit: 20 
+    },
+    { 
+        title: "Jordan Arce Strikes Again! 🤡", 
+        text: "Scam artist Jordan Arce sold you a 'Guaranteed Passive Income' vending machine. Turns out, it only dispenses loose gravel. You've been conned.", 
+        cost: 2500, 
+        stressHit: 35 
+    },
+    { 
+        title: "Wyatt Green's Wild Bet 🧅", 
+        text: "Wyatt Green bet you $1,000 that he could eat a raw onion like an apple without crying. He threw up immediately. You win the bet!", 
+        gain: 1000, 
+        stressRelief: 15 
+    },
+    { 
+        title: "Cristina's MLM Scheme 🧴", 
+        text: "Cristina guilt-tripped you into buying a starter kit for her new pyramid scheme selling 'Fermented Essential Oils'. It smells awful and you can't get a refund.", 
+        cost: 800, 
+        stressHit: 15 
+    },
+    { 
+        title: "Flexing with Izzy Ortiz 🌭✨", 
+        text: "Izzy Ortiz just opened a luxury food truck selling $400 Wagyu Hot Dogs topped with gold flakes. Do you flex on social media and buy one?", 
+        isChoice: true, 
+        cost: 400, 
+        stressRelief: 30, // Big stress relief for the flex
+        declineStressHit: 10 // FOMO hits if you decline
+    },
+    { 
+        title: "Wyatt Green's 'Great Idea' 💻", 
+        text: "Wyatt Green 'borrowed' your laptop to mine cryptocurrency and completely melted the motherboard. You have to buy a new one.", 
+        cost: 1500, 
+        stressHit: 25 
+    },
+    { 
+        title: "Cristina's 'Zen' Retreat 🧘‍♀️", 
+        text: "Cristina drags you to a ridiculously expensive weekend meditation retreat where you just scream at trees. You hate to admit it, but you actually feel amazing.", 
+        isChoice: true, 
+        cost: 600, 
+        stressRelief: 50, 
+        declineStressHit: 0 
     }
 ];
 
-function processLifeEvents(count, forceMedical, player, movePlayer, nextTurn, addButton, handlePayment) {
+function triggerLifeEvent(player, handlePayment, nextTurn, addButton, movePlayer) {
     const text = document.getElementById('event-text');
     const choices = document.getElementById('choices');
-    
-    // We can also trigger the "Brutal" events randomly here
-    if (Math.random() < 0.3) {
-        const ev = randomEvents[Math.floor(Math.random() * randomEvents.length)];
-        text.innerHTML = `<strong>${ev.title}</strong><br>${ev.desc}`;
-        ev.choices.forEach(c => {
-            addButton(c.label, () => { c.action(player, handlePayment); movePlayer(); nextTurn(); });
+    choices.innerHTML = "";
+
+    // Filter valid events based on player state
+    let validEvents = randomEvents.filter(e => {
+        if (e.houseOnly && !player.hasHouse) return false;
+        if (e.carOnly && !player.hasCar) return false;
+        if (e.requiresShares && player.shares === 0) return false;
+        return true;
+    });
+
+    const ev = validEvents[Math.floor(Math.random() * validEvents.length)];
+    text.innerHTML = `<strong>${ev.title}</strong><br>${ev.text}`;
+
+    // Apply Stress Changes visually immediately if it's not a choice
+    if (!ev.isChoice) {
+        if (ev.stressHit) player.stress = Math.min(100, player.stress + ev.stressHit);
+        if (ev.stressRelief) player.stress = Math.max(0, player.stress - ev.stressRelief);
+    }
+
+    // 1. Choice Events
+    if (ev.isChoice) {
+        text.innerHTML += `<br><em>(Do you spend the money to reduce stress?)</em>`;
+        
+        addButton(`Go for it (-$${ev.cost}, -${ev.stressRelief}% Stress)`, () => {
+            handlePayment(ev.cost);
+            player.stress = Math.max(0, player.stress - ev.stressRelief);
+            movePlayer(); nextTurn();
         });
-        return;
+        
+        addButton(`Decline (+${ev.declineStressHit}% Stress)`, () => {
+            player.stress = Math.min(100, player.stress + ev.declineStressHit);
+            movePlayer(); nextTurn();
+        }, "decline-btn");
+    } 
+    // 2. Positive Gain Events
+    else if (ev.gain) {
+        text.innerHTML += `<br><span style="color:green">You received $${ev.gain.toLocaleString()}!</span>`;
+        addButton("Awesome", () => {
+            player.money += ev.gain;
+            movePlayer(); nextTurn();
+        });
+    } 
+    // 3. Negative Cost Events
+    else if (ev.cost) {
+        let finalCost = ev.cost;
+        if (ev.insuranceMitigates && player.hasInsurance) {
+            finalCost = Math.floor(ev.cost * 0.2); // Insurance covers 80%
+            text.innerHTML += `<br><span style="color:green">Insurance covered most of it! You owe $${finalCost.toLocaleString()}.</span>`;
+        } else {
+            text.innerHTML += `<br><span style="color:red">It costs $${finalCost.toLocaleString()}. (+${ev.stressHit}% Stress)</span>`;
+        }
+
+        addButton("Pay Bill", () => {
+            handlePayment(finalCost);
+            if (ev.creditHit) player.creditScore -= ev.creditHit;
+            movePlayer(); nextTurn();
+        });
     }
-
-    // Normal pool logic...
-    let pool = [
-        { id: "marriage", title: "Marriage", desc: "Costs $5,000. Shared income boosts salary by $400.", canDecline: true, condition: () => !player.isMarried, onAccept: () => { handlePayment(5000); player.salary += 400; player.isMarried = true; }},
-        { id: "medical", title: "Medical Emergency", desc: "Unexpected health bill.", canDecline: false, condition: () => true, onAccept: () => { 
-            const cost = 300 * player.injuryMult;
-            if(player.hasInsurance) handlePayment(cost); 
-            else { player.isInjured = true; player.turnsUntilHealed = 4; handlePayment(cost * 2); }
-        }}
-    ];
-
-    let available = pool.filter(e => e.condition());
-    let chosen = forceMedical ? [pool.find(e => e.id === "medical")] : [available[Math.floor(Math.random() * available.length)]];
-
-    let idx = 0;
-    function show() {
-        if (idx >= chosen.length) { nextTurn(); return; }
-        const e = chosen[idx]; choices.innerHTML = ""; text.innerHTML = `<strong>${e.title}</strong><br>${e.desc}`;
-        addButton(`Handle ${e.title}`, () => { e.onAccept(); movePlayer(); idx++; show(); });
-        if (e.canDecline) addButton("Decline", () => { idx++; show(); }, "decline-btn");
-    }
-    show();
 }
