@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apartment to Mansion Journey</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Apartment to Mansion Journey</h1>
+
+<div id="game-wrapper">
+    <div id="board-container">
+        <div id="player">ME</div>
+        <div id="board"></div>
+    </div>
+
+    <div id="sidebar">
+        <h3>Live Finances</h3>
+        <div class="stat-card">Savings: $<span id="money">5000</span></div>
+        <div class="stat-card">Roth IRA: $<span id="roth">0</span></div>
+        <div class="stat-card debt-card">Payday Loan: $<span id="debt">0</span></div>
+        <div class="stat-card">Insurance: <span id="insStatus">None</span></div>
+        <div class="stat-card">Current Age: <span id="ageDisplay">20</span></div>
+
+        <div id="dice-area">
+            <div id="dice">?</div>
+            <button class="roll-btn" id="rollBtn">Advance One Year</button>
+        </div>
+
+        <div id="event-display">
+            <p id="event-text">Goal: Age 62. Salary: $1,800. Manage your life choices wisely.</p>
+            <div id="choices" class="choice-btns"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="game.js"></script>
+</body>
+</html>

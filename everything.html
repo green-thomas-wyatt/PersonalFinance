@@ -9,6 +9,7 @@
             --primary: #2c3e50;
             --secondary: #27ae60;
             --accent: #e67e22;
+            --danger: #e74c3c;
             --bg: #ecf0f1;
             --tile-size: 80px;
         }
@@ -32,10 +33,9 @@
             justify-content: center;
         }
 
-        /* --- BOARD STYLES --- */
         #board-container {
             position: relative;
-            background: #d4a373; /* Parchment/Map color */
+            background: #d4a373; 
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -71,11 +71,11 @@
         #player {
             width: 40px;
             height: 40px;
-            background: #e74c3c;
+            background: var(--danger);
             border: 3px solid white;
             border-radius: 50%;
             position: absolute;
-            transition: all 0.5s ease-in-out;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 10;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             display: flex;
@@ -83,9 +83,15 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            animation: pulse 2s infinite;
         }
 
-        /* --- SIDEBAR STYLES --- */
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
         #sidebar {
             width: 300px;
             background: white;
@@ -100,23 +106,19 @@
             border-radius: 8px;
             margin-bottom: 10px;
             border-left: 5px solid var(--primary);
+            transition: transform 0.2s;
         }
+
+        .stat-card.debt-card { border-left-color: var(--danger); color: var(--danger); }
 
         #event-display {
             background: #fff3cd;
-            border: 1px solid #ffeeba;
+            border: 2px solid #ffeeba;
             padding: 15px;
             border-radius: 8px;
             min-height: 120px;
             margin-top: 20px;
-        }
-
-        /* --- DICE STYLES --- */
-        #dice-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
         }
 
         #dice {
@@ -131,11 +133,9 @@
             font-size: 2rem;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        #dice:active { transform: scale(0.9); }
         .roll-btn {
             margin-top: 10px;
             padding: 10px 20px;
@@ -145,11 +145,20 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            width: 100%;
         }
 
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .choice-btns { display: flex; gap: 5px; margin-top: 10px; }
-        .choice-btns button { font-size: 0.7rem; padding: 5px; }
+        .choice-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .choice-btns button { 
+            padding: 8px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .choice-btns button:hover { background: var(--accent); }
 
     </style>
 </head>
@@ -160,76 +169,75 @@
 <div id="game-wrapper">
     <div id="board-container">
         <div id="player">ME</div>
-        <div id="board">
-            </div>
+        <div id="board"></div>
     </div>
 
     <div id="sidebar">
-        <h3>Game Status</h3>
+        <h3>Live Finances</h3>
         <div class="stat-card">Savings: $<span id="money">5000</span></div>
         <div class="stat-card">Roth IRA: $<span id="roth">0</span></div>
+        <div class="stat-card debt-card">Payday Loan: $<span id="debt">0</span></div>
         <div class="stat-card">Current Age: <span id="ageDisplay">20</span></div>
 
         <div id="dice-area">
             <div id="dice">?</div>
-            <button class="roll-btn" id="rollBtn" onclick="rollDice()">Roll Dice</button>
+            <button class="roll-btn" id="rollBtn" onclick="rollDice()">End Year (Roll Dice)</button>
         </div>
 
         <div id="event-display">
-            <p id="event-text">Welcome! Roll the dice to start your journey from Age 20 to Retirement.</p>
+            <p id="event-text">Roll to begin. Beware of high-interest debt!</p>
             <div id="choices" class="choice-btns"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // Course Logic Constants
-    const START_SAVINGS = 5000;
-    const APT_FEES = 1800; //
-    const LUXURY_ITEM = 1200; //
-    const ROTH_CONTRIBUTION = 1500; //
+    const APT_FEES = 1800;
+    const LUXURY_ITEM = 1200;
+    const ROTH_CONTRIBUTION = 1500;
+    const INTEREST_RATE = 0.15; // 15% per turn - the "trap"
 
     let player = {
         pos: 0,
-        money: START_SAVINGS,
+        money: 5000,
         roth: 0,
+        debt: 0,
         age: 20,
         hasApt: false
     };
 
     const boardPath = [
         { id: 0, label: "Start", x: 0, y: 0 },
-        { id: 1, label: "Job", x: 1, y: 0 },
-        { id: 2, label: "Save", x: 2, y: 0 },
+        { id: 1, label: "First Job", x: 1, y: 0 },
+        { id: 2, label: "Savings Sq", x: 2, y: 0 },
         { id: 3, label: "Apt Hunt", x: 3, y: 0, type: 'special' },
-        { id: 4, label: "Bills", x: 4, y: 0 },
-        { id: 5, label: "Work", x: 4, y: 1 },
-        { id: 6, label: "Bonus", x: 3, y: 1 },
-        { id: 7, label: "Spend", x: 2, y: 1 },
+        { id: 4, label: "Bills Due", x: 4, y: 0 },
+        { id: 5, label: "Work Trip", x: 4, y: 1 },
+        { id: 6, label: "Bonus!", x: 3, y: 1 },
+        { id: 7, label: "Market", x: 2, y: 1 },
         { id: 8, label: "Sale!", x: 1, y: 1, type: 'special' },
-        { id: 9, label: "Growth", x: 0, y: 1 },
-        { id: 10, label: "Tax Time", x: 0, y: 2, type: 'special' },
-        { id: 11, label: "Saving", x: 1, y: 2 },
-        { id: 12, label: "Career", x: 2, y: 2 },
-        { id: 13, label: "Ethics", x: 3, y: 2 },
-        { id: 14, label: "Raise", x: 4, y: 2 },
-        { id: 15, label: "IRA Sq.", x: 4, y: 3, type: 'special' },
-        { id: 16, label: "Future", x: 3, y: 3 },
-        { id: 17, label: "Health", x: 2, y: 3 },
-        { id: 18, label: "Invest", x: 1, y: 3 },
-        { id: 19, label: "Retire!", x: 0, y: 3, type: 'finish' }
+        { id: 9, label: "Side Gig", x: 0, y: 1 },
+        { id: 10, label: "IRS Visit", x: 0, y: 2, type: 'special' },
+        { id: 11, label: "Emergency", x: 1, y: 2 },
+        { id: 12, label: "Promotion", x: 2, y: 2 },
+        { id: 13, label: "Insurance?", x: 3, y: 2 },
+        { id: 14, label: "Salary Bump", x: 4, y: 2 },
+        { id: 15, label: "Roth IRA", x: 4, y: 3, type: 'special' },
+        { id: 16, label: "Investment", x: 3, y: 3 },
+        { id: 17, label: "Healthcare", x: 2, y: 3 },
+        { id: 18, label: "Final Stretch", x: 1, y: 3 },
+        { id: 19, label: "Mansion!", x: 0, y: 3, type: 'finish' }
     ];
 
     function initBoard() {
         const boardEl = document.getElementById('board');
-        // Populate board with tiles at fixed positions
         boardPath.forEach(tile => {
             const el = document.createElement('div');
             el.className = `tile ${tile.type || ''}`;
             el.id = `tile-${tile.id}`;
             el.style.gridColumnStart = tile.x + 1;
             el.style.gridRowStart = tile.y + 1;
-            el.innerHTML = `<span>${tile.label}</span><br><small>${tile.id + 20}</small>`;
+            el.innerHTML = `<span>${tile.label}</span><br><small>Age ${tile.id + 20}</small>`;
             boardEl.appendChild(el);
         });
         movePlayer();
@@ -238,28 +246,30 @@
     function movePlayer() {
         const target = boardPath[player.pos];
         const playerEl = document.getElementById('player');
-        const tileGap = 10;
-        const padding = 20;
+        playerEl.style.left = `${target.x * 90 + 40}px`;
+        playerEl.style.top = `${target.y * 90 + 40}px`;
         
-        playerEl.style.left = `${target.x * (80 + tileGap) + padding + 20}px`;
-        playerEl.style.top = `${target.y * (80 + tileGap) + padding + 20}px`;
-        
-        document.getElementById('money').innerText = player.money.toLocaleString();
-        document.getElementById('roth').innerText = player.roth.toLocaleString();
+        // Update Stats
+        document.getElementById('money').innerText = Math.floor(player.money).toLocaleString();
+        document.getElementById('roth').innerText = Math.floor(player.roth).toLocaleString();
+        document.getElementById('debt').innerText = Math.floor(player.debt).toLocaleString();
         document.getElementById('ageDisplay').innerText = player.age;
     }
 
     async function rollDice() {
-        const diceBtn = document.getElementById('rollBtn');
-        diceBtn.disabled = true;
-        
-        // Dice Animation
+        document.getElementById('rollBtn').disabled = true;
         const diceEl = document.getElementById('dice');
         let roll = 0;
+        
         for(let i=0; i<10; i++){
             roll = Math.floor(Math.random() * 3) + 1;
             diceEl.innerText = roll;
             await new Promise(r => setTimeout(r, 50));
+        }
+
+        // Apply Interest on Debt every roll
+        if(player.debt > 0) {
+            player.debt *= (1 + INTEREST_RATE);
         }
 
         player.pos += roll;
@@ -275,46 +285,47 @@
         const choices = document.getElementById('choices');
         choices.innerHTML = "";
 
-        // TILE LOGIC [Citations below]
         if (pos === 3 && !player.hasApt) {
-            text.innerHTML = `<strong>Apt Hunt:</strong> You need a place to live! You must pay move-in fees and a security deposit.`;
-            addButton("Pay $1,800", () => {
-                player.money -= APT_FEES;
-                player.hasApt = true;
-                nextTurn();
-            });
+            text.innerHTML = `<strong>Apartment Hunt:</strong> Move-in costs are $1,800.`;
+            addButton("Pay Cash", () => { player.money -= APT_FEES; player.hasApt = true; nextTurn(); });
+            addButton("Take Payday Loan", () => { player.debt += APT_FEES; player.hasApt = true; nextTurn(); });
         } 
         else if (pos === 8) {
-            text.innerHTML = `<strong>Flash Sale:</strong> A "scarcity" marketing tactic! A luxury watch is $1,200. Will you apply the 24-hour rule?`;
-            addButton("Use 24-hr Rule (Save $)", nextTurn);
-            addButton("Buy Impulse (-$1,200)", () => {
-                player.money -= LUXURY_ITEM;
-                nextTurn();
-            });
+            text.innerHTML = `<strong>Flash Sale:</strong> A Luxury Item is $1,200. "Want vs Need?"`;
+            addButton("Ignore (Apply 24-hr Rule)", nextTurn);
+            addButton("Buy on Credit (Add Debt)", () => { player.debt += LUXURY_ITEM; nextTurn(); });
         }
         else if (pos === 10) {
             const tax = Math.floor(player.money * 0.15);
-            text.innerHTML = `<strong>Tax Audit:</strong> Taxes are progressive. Based on your current savings, you owe $${tax}.`;
-            addButton("Pay Taxes", () => {
-                player.money -= tax;
-                nextTurn();
-            });
+            text.innerHTML = `<strong>Tax Audit:</strong> You owe $${tax} in progressive taxes.`;
+            addButton("Pay Government", () => { player.money -= tax; nextTurn(); });
         }
         else if (pos === 15) {
-            text.innerHTML = `<strong>IRA Sq:</strong> Social Security won't be enough. Invest in a Roth IRA for tax-free growth?`;
-            addButton("Invest $1,500", () => {
-                player.money -= ROTH_CONTRIBUTION;
-                player.roth += ROTH_CONTRIBUTION;
-                nextTurn();
-            });
-            addButton("Skip Contribution", nextTurn);
+            text.innerHTML = `<strong>Roth IRA:</strong> Maximize tax-free growth with $1,500?`;
+            addButton("Invest $1,500", () => { player.money -= 1500; player.roth += 1500; nextTurn(); });
+            addButton("Skip Year", nextTurn);
         }
         else if (pos === 19) {
-            text.innerHTML = `<strong>RETIRED!</strong> You finished the journey with $${player.money + player.roth}. Refresh to play again.`;
+            let total = player.money + player.roth - player.debt;
+            text.innerHTML = `<strong>FINAL SCORE:</strong> $${Math.floor(total).toLocaleString()}.<br>Net Worth is your final grade!`;
         }
         else {
-            text.innerText = "Nothing major happens this year. Keep saving!";
-            document.getElementById('rollBtn').disabled = false;
+            // RANDOM LIFE EVENT LOGIC (Percentages)
+            const rand = Math.random();
+            if (rand < 0.25) { // 25% chance of an issue
+                text.innerHTML = `<strong>Car Leak!</strong> Your car ran out of coolant. Do you risk the drive to work or fix it?`;
+                addButton("Risk It (40% Failure chance)", () => {
+                    if(Math.random() < 0.4) {
+                        alert("Engine blew up! -$2,500");
+                        player.money -= 2500;
+                    }
+                    nextTurn();
+                });
+                addButton("Go to Shop (-$200)", () => { player.money -= 200; nextTurn(); });
+            } else {
+                text.innerText = "The year was quiet. Interest on any debt still accrued.";
+                document.getElementById('rollBtn').disabled = false;
+            }
         }
     }
 
@@ -327,7 +338,7 @@
 
     function nextTurn() {
         document.getElementById('choices').innerHTML = "";
-        document.getElementById('event-text').innerText = "Good move. Roll again!";
+        document.getElementById('event-text').innerText = "Decision logged. Roll for next year.";
         document.getElementById('rollBtn').disabled = false;
         movePlayer();
     }
