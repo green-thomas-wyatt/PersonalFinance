@@ -315,11 +315,18 @@ function initBoard() {
         el.style.gridRowStart = tile.y + 1;
         boardEl.appendChild(el);
     });
-    // Add this inside initBoard(), right next to where you enable the rollBtn
-    document.getElementById('marketBtn').onclick = () => openStockMarket(player, movePlayer);
+// Link "Open Stock Market" to your original stocks.js logic
+    document.getElementById('marketBtn').onclick = () => {
+        openStockMarket(player, movePlayer);
+    };
+
+    // Link "Volatility Slots" to your slots.js logic
+    document.getElementById('slotsBtn').onclick = () => {
+        openSlotMachine();
+    };
+
     document.getElementById('rollBtn').onclick = rollDice;
     document.getElementById('rollBtn').disabled = false;
     movePlayer();
 }
-
 document.addEventListener("DOMContentLoaded", selectRetirementGoal);
