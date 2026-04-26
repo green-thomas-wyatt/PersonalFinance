@@ -1,0 +1,59 @@
+/* Full-screen Stock Market Page */
+.stock-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.98); /* Deep dark theme */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Stays on top of everything */
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.stock-modal {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid #334155;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    max-width: 500px;
+    width: 90%;
+}
+
+.ticker-box {
+    background: #0f172a;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    border-left: 5px solid #f1c40f;
+}
+
+.stock-price {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.up { color: #22c55e; }
+.down { color: #ef4444; }
+
+.market-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.market-btns button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}

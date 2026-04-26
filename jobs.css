@@ -1,0 +1,40 @@
+.job-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #0f172a;
+    display: flex;
+    align-items: center; justify-content: center;
+    z-index: 5000;
+}
+
+.job-modal {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    max-width: 700px;
+    width: 90%;
+    text-align: center;
+}
+
+.job-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.job-card {
+    border: 2px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+    color: #1e293b;
+}
+
+.job-card:hover {
+    border-color: #27ae60;
+    background: #f0fdf4;
+    transform: translateY(-5px);
+}

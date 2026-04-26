@@ -1,44 +1,26 @@
-export const randomEvents = [
+// events.js - NO EXPORTS
+const randomEvents = [
     {
         title: "The Predatory 'Quick Cash' Trap",
-        desc: "An unexpected bill arrived. A local lender offers $500 'hassle-free', but the fine print mentions a 400% APR.",
+        desc: "An unexpected bill arrived. A lender offers $500 'hassle-free', but the fine print mentions a 400% APR.",
         choices: [
-            { label: "Take the $500 (Debt grows faster!)", action: (p) => { 
-                p.debt += 500; 
-                p.money += 500;
-                p.interestRate += 0.05; // Permanently increases your interest difficulty
+            { label: "Take the $500 (Debt grows faster!)", action: (p, hp) => { 
+                p.debt += 500; p.money += 500; p.currentInterest += 0.05; 
             }},
-            { label: "Default on the bill (-$700 & Credit Hit)", action: (p) => { 
-                p.money -= 700; 
-                p.creditScore -= 50; 
-                alert("Your Credit Score dropped! Future loans will be more expensive.");
+            { label: "Default on bill (-$700 & Credit Hit)", action: (p, hp) => { 
+                hp(700); p.creditScore -= 50; 
             }}
         ]
     },
     {
         title: "Uninsured Medical Emergency",
-        desc: "You broke your arm bouldering. If you don't have insurance, this is going to hurt.",
+        desc: "You broke your arm. If you don't have insurance, this is going to hurt.",
         choices: [
-            { label: "Pay full price (-$2,500)", action: (p) => { 
-                if(!p.hasInsurance) p.money -= 2500;
-                else { p.money -= 500; alert("Insurance covered most of it!"); }
+            { label: "Pay full price", action: (p, hp) => { 
+                const cost = p.hasInsurance ? 500 : 2500; hp(cost);
             }},
-            { label: "Skip treatment (Penalty every turn)", action: (p) => { 
-                p.isInjured = true; // New status effect
-                alert("You are now 'Injured'. You will lose $100 every turn in lost productivity.");
-            }}
-        ]
-    },
-    {
-        // A "Negative ROI" event
-        title: "The 'Get Rich Quick' Scam",
-        desc: "You invested in a 'guaranteed' startup. It was a total fraud.",
-        choices: [
-            { label: "Accept the Loss (-$1,500)", action: (p) => { p.money -= 1500; }},
-            { label: "Hire a Lawyer to fight (-$500 & 10% chance to win)", action: (p) => {
-                p.money -= 500;
-                if(Math.random() < 0.1) { p.money += 2000; alert("You won the case!"); }
-                else { alert("You lost the case and the lawyer fees."); }
+            { label: "Skip (Lost Productivity)", action: (p, hp) => { 
+                p.isInjured = true; p.turnsUntilHealed = 6; 
             }}
         ]
     },
@@ -46,12 +28,47 @@ export const randomEvents = [
         title: "Infrastructure Failure",
         desc: "Your refrigerator and water heater both died in the same week.",
         choices: [
-            { label: "Replace both (-$1,800)", action: (p) => { p.money -= 1800; }},
-            { label: "Live without (Stress Penalty)", action: (p) => { 
-                p.money -= 200; 
-                p.isStressed = true; 
-                alert("Living without basics makes you 'Stressed'. You roll -1 on every dice roll now.");
+            { label: "Replace both (-$1,800)", action: (p, hp) => { hp(1800); }},
+            { label: "Live without (Stressed)", action: (p, hp) => { 
+                hp(200); p.isStressed = true; 
             }}
         ]
     }
 ];
+
+function processLifeEvents(count, forceMedical, player, movePlayer, nextTurn, addButton, handlePayment) {
+    const text = document.getElementById('event-text');
+    const choices = document.getElementById('choices');
+    
+    // We can also trigger the "Brutal" events randomly here
+    if (Math.random() < 0.3) {
+        const ev = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+        text.innerHTML = `<strong>${ev.title}</strong><br>${ev.desc}`;
+        ev.choices.forEach(c => {
+            addButton(c.label, () => { c.action(player, handlePayment); movePlayer(); nextTurn(); });
+        });
+        return;
+    }
+
+    // Normal pool logic...
+    let pool = [
+        { id: "marriage", title: "Marriage", desc: "Costs $5,000. Shared income boosts salary by $400.", canDecline: true, condition: () => !player.isMarried, onAccept: () => { handlePayment(5000); player.salary += 400; player.isMarried = true; }},
+        { id: "medical", title: "Medical Emergency", desc: "Unexpected health bill.", canDecline: false, condition: () => true, onAccept: () => { 
+            const cost = 300 * player.injuryMult;
+            if(player.hasInsurance) handlePayment(cost); 
+            else { player.isInjured = true; player.turnsUntilHealed = 4; handlePayment(cost * 2); }
+        }}
+    ];
+
+    let available = pool.filter(e => e.condition());
+    let chosen = forceMedical ? [pool.find(e => e.id === "medical")] : [available[Math.floor(Math.random() * available.length)]];
+
+    let idx = 0;
+    function show() {
+        if (idx >= chosen.length) { nextTurn(); return; }
+        const e = chosen[idx]; choices.innerHTML = ""; text.innerHTML = `<strong>${e.title}</strong><br>${e.desc}`;
+        addButton(`Handle ${e.title}`, () => { e.onAccept(); movePlayer(); idx++; show(); });
+        if (e.canDecline) addButton("Decline", () => { idx++; show(); }, "decline-btn");
+    }
+    show();
+}
