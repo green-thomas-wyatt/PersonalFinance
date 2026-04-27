@@ -9,7 +9,9 @@ let player = {
     retirementGoalName: "", retirementGoalAmount: 0,
     lifestyle: "Normal", hasHouse: false, hasCar: false,
     stockRumor: null, stress: 0,
-    stockPrice: 100 // NEW: Starting stock price
+    stockPrice: 100, // Volatile tech stock
+    spShares: 0,     // NEW: S&P 500 shares
+    spPrice: 100     // NEW: S&P 500 base price
 };
 
 const boardPath = [];
@@ -96,6 +98,7 @@ function movePlayer() {
     
     document.getElementById('money').innerText = Math.floor(player.money).toLocaleString();
     document.getElementById('shares').innerText = player.shares;
+    document.getElementById('spShares').innerText = player.spShares; // <-- ADD THIS LINE
     document.getElementById('roth').innerText = Math.floor(player.roth).toLocaleString();
     document.getElementById('debt').innerText = Math.floor(player.debt).toLocaleString();
     document.getElementById('creditScore').innerText = player.creditScore;
@@ -165,16 +168,16 @@ async function rollDice() {
     if (totalEarned > 0) showFloatText(totalEarned);
 
     if(player.debt > 0) player.debt *= (1 + player.currentInterest);
-// FLUCTUATE STOCK MARKET (-20% to +30% generally)
+// FLUCTUATE VOLATILE STOCK (-20% to +30% generally)
 let marketShift = (Math.random() * 0.50) - 0.20; 
-    
-// Apply rumors if they exist, then clear them
 if (player.stockRumor === "boom") marketShift += 0.40;
 if (player.stockRumor === "bust") marketShift -= 0.40;
 player.stockRumor = null; 
-// Add this inside initBoard(), right next to where you enable the rollBtn
-document.getElementById('marketBtn').onclick = () => openStockMarket(player, movePlayer);
 player.stockPrice = Math.max(5, Math.floor(player.stockPrice * (1 + marketShift)));
+
+// FLUCTUATE S&P 500 (-5% to +25%, averaging ~10% growth per year)
+let spShift = (Math.random() * 0.30) - 0.05; 
+player.spPrice = Math.max(10, Math.floor(player.spPrice * (1 + spShift)));
 
     player.pos = Math.min(player.pos + roll, boardPath.length - 1);
     player.age += roll;
@@ -253,7 +256,8 @@ if (player.debt > 0 && player.money > 0 && pos !== TOTAL_YEARS) {
     }
     else if (pos === TOTAL_YEARS) {
         // 🎉 GAME OVER LOGIC
-        let netWorth = player.money + player.roth + (player.shares * 350) - player.debt; 
+        // Net worth now uses live stock prices for accurate valuation!
+        let netWorth = player.money + player.roth + (player.shares * player.stockPrice) + (player.spShares * player.spPrice) - player.debt; 
         if (player.hasHouse) netWorth += 350000; 
         
         let won = netWorth >= player.retirementGoalAmount;
